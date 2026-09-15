@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "name": "Kindle Dash",
+      "priority": 1,
+      "items": [
+        { "name": "Start dashboard", "priority": 0, "action": "bin/start.sh", "exitmenu": true },
+        { "name": "Stop dashboard", "priority": 1, "action": "bin/stop.sh" },
+        { "name": "Refresh now", "priority": 2, "action": "bin/refresh.sh" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+# Copy to dash.conf next to dash.sh on the Kindle and edit.
+
+# Full URL of the rendered PNG. Use the mini PC IP, the Kindle has no mDNS resolver.
+DASH_URL="http://192.168.1.50:3000/api/dash.png"
+
+# Seconds between refreshes
+INTERVAL=300
+
+# Do a full flashing refresh every N cycles, to clear e-ink ghosting
+FULL_REFRESH_EVERY=12
+
+# 1 = suspend the device between refreshes (big battery win, test the loop first)
+SUSPEND=0
+
+# 1 = stop the Kindle UI while the dashboard runs
+STOP_FRAMEWORK=0

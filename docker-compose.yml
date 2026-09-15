@@ -1,0 +1,28 @@
+services:
+  kindle-dash:
+    build: .
+    image: kindle-dash:local
+    container_name: kindle-dash
+    restart: unless-stopped
+    ports:
+      - "${DASH_PORT:-3000}:3000"
+    # Chromium crashes on the default 64MB /dev/shm
+    shm_size: "1gb"
+    environment:
+      TZ: ${DASH_TZ:-Europe/Rome}
+      DASH_TZ: ${DASH_TZ:-Europe/Rome}
+      DASH_PRERENDER: "1"
+      DASH_TTL_MS: ${DASH_TTL_MS:-300000}
+      SCREEN_WIDTH: ${SCREEN_WIDTH:-800}
+      SCREEN_HEIGHT: ${SCREEN_HEIGHT:-600}
+      DASH_ROTATE: ${DASH_ROTATE:-90}
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

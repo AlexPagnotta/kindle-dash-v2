@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-gray: #808080;
+  /* Dev only: the backdrop around the panel-sized box */
+  --color-gray-light: #e5e5e5;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-white);
+  color: var(--color-black);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  /* The panel is 1-bit-ish: antialiasing turns into mud after dithering */
+  -webkit-font-smoothing: none;
+}
