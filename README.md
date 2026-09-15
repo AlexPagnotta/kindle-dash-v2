@@ -47,6 +47,7 @@ src/lib/config.ts   env-driven config (panel size, timezone, cache)
 src/lib/render.ts   Playwright browser singleton and screenshot
 src/lib/cache.ts    on-disk PNG cache, concurrent renders deduped
 src/instrumentation.ts  background prerender job (DASH_PRERENDER=1)
+deploy/             ZimaOS compose file, init.sh and update.sh
 device/             what runs on the Kindle: dash.sh, KUAL extension, installer
 ```
 
@@ -59,56 +60,88 @@ device/             what runs on the Kindle: dash.sh, KUAL extension, installer
 | `npm start` | Run the production build locally |
 | `npm run lint` | Typecheck |
 | `curl -o dash.png localhost:3000/api/dash.png?force=1` | Render and save a PNG to inspect |
-| `docker compose up -d --build` | Build and run the container |
+| `docker compose up -d --build` | Build and run the container (non-ZimaOS hosts) |
 | `docker compose logs -f` | Follow logs, including each prerender |
 | `docker compose down` | Stop it |
+| `ssh <box> /DATA/AppData/kindle-dash/deploy/init.sh` | One-time ZimaOS setup: registry, build, publish |
+| `ssh <box> /DATA/AppData/kindle-dash/deploy/update.sh` | Rebuild on the box and restart the ZimaOS app |
 | `./device/install.sh <kindle-ip>` | Push the device side to the Kindle over SSH |
 
 ## Deploy
 
-### Server (mini PC / ZimaOS)
+The server runs as a Docker container, built on the box itself so nothing leaves the LAN. The image
+is ~2.5GB, mostly Chromium, and the build needs ~2GB of free RAM.
 
-Built on the box, nothing leaves the LAN.
+### Server: first install on ZimaOS
 
-1. Clone the repo on the machine and set the env:
+ZimaOS runs apps as containers but its UI cannot build images, and it always runs `docker compose
+pull` before starting an app. So the image is built over SSH and published to a small registry on the
+box, which gives the UI something to pull from. Everything below runs once.
 
-   ```sh
-   git clone <repo> kindle-dash && cd kindle-dash
-   cp .env.example .env   # set DASH_TZ, SCREEN_WIDTH/HEIGHT, DASH_ROTATE, DASH_PORT
-   ```
-
-2. Start it:
+1. **Clone the repo** somewhere persistent. `/DATA/AppData` is where ZimaOS keeps app data:
 
    ```sh
-   docker compose up -d --build
+   ssh <box> 'git clone https://github.com/AlexPagnotta/kindle-dash-v2.git /DATA/AppData/kindle-dash'
    ```
 
-   First build takes a few minutes and needs ~2GB of free RAM. The image is ~1.5GB, mostly Chromium.
+2. **Run the init script**. It is idempotent, so it is safe to re-run:
 
-3. Check it from another machine on the LAN: `curl -o dash.png http://<mini-pc-ip>:3000/api/dash.png`
+   ```sh
+   ssh <box> /DATA/AppData/kindle-dash/deploy/init.sh
+   ```
 
-On ZimaOS the UI cannot build images and always pulls, so the image is served by a small registry
-running on the box itself. Build and publish it over SSH, then import `deploy/zimaos.compose.yml`
-through Apps -> "+" -> Install a customized app.
+   It starts the registry, then builds and publishes the image to
+   `localhost:5000/kindle-dash:latest`. Check it landed with
+   `curl http://<box-ip>:5000/v2/kindle-dash/tags/list`.
+
+   Two ZimaOS quirks it handles for you. `$HOME` is `/DATA`, which is root-owned, so the Docker CLI
+   cannot read its config and its plugins (`build`, `compose`) refuse to load with errors like
+   `unknown shorthand flag: 't' in -t`: every command sets `DOCKER_CONFIG` to a writable directory
+   instead. And Docker allows plain HTTP for `localhost`, so the registry needs no certificates.
+
+3. **Install the app** in the ZimaOS UI: Apps -> "+" -> Install a customized app, and import
+   `/DATA/AppData/kindle-dash/deploy/zimaos.compose.yml`. Settings such as the timezone, the panel
+   size and `DASH_ROTATE` are inline in that file, so edit it before importing or change them in the
+   UI afterwards.
+
+4. **Verify** from another machine on the LAN:
+
+   ```sh
+   curl -o dash.png http://<box-ip>:3000/api/dash.png
+   ```
+
+   Expect a 600x800 PNG holding the landscape dashboard rotated onto its side.
+
+Give the box a DHCP reservation. The Kindle has no mDNS resolver, so the device config needs an IP,
+not a `.local` name, and plain HTTP: the Kindle's CA bundle is too old to be worth fighting.
+
+### Server: updating
 
 ```sh
-# once: a registry on the box, so the ZimaOS UI has something to pull from
-ssh <box> 'DOCKER_CONFIG=/DATA/AppData/kindle-dash/.docker docker run -d --name registry \
-  --restart unless-stopped -p 5000:5000 \
-  -v /DATA/AppData/registry/data:/var/lib/registry registry:2'
-
-# every time: build, publish, restart
 ssh <box> /DATA/AppData/kindle-dash/deploy/update.sh
 ```
 
-The `DOCKER_CONFIG` override is needed because ZimaOS points `$HOME` at a root-owned `/DATA`, which
-stops the Docker CLI plugins (`build`, `compose`) from loading. `update.sh` sets it itself.
+That pulls the repo, rebuilds, publishes, and recreates the container from the compose file ZimaOS
+stores at `/var/lib/casaos/apps/kindle-dash/docker-compose.yml`, which keeps the UI in sync.
 
-Rebuilding alone changes nothing for the running app: the container keeps the old image until it is
-recreated, which is the `--force-recreate` at the end of `update.sh`. `docker restart` is not enough.
+Rebuilding on its own changes nothing for the running app: the container keeps the old image until it
+is recreated, so `docker restart` is not enough. That is what the `--force-recreate` in the script is
+for.
 
 The app survives reboots: `restart: unless-stopped` brings it back with the Docker daemon. Only the
 cached PNG is lost, and the prerender job rebuilds it a few seconds after start.
+
+### Server: any other Docker host
+
+No registry and no UI needed, `docker-compose.yml` in the repo root builds and runs it directly:
+
+```sh
+git clone https://github.com/AlexPagnotta/kindle-dash-v2.git kindle-dash && cd kindle-dash
+cp .env.example .env   # set DASH_TZ, SCREEN_WIDTH/HEIGHT, DASH_ROTATE, DASH_PORT
+docker compose up -d --build
+```
+
+Updating: `git pull && docker compose up -d --build`.
 
 ### Kindle
 
