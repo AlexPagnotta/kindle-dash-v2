@@ -87,7 +87,17 @@ Built on the box, nothing leaves the LAN.
 
 3. Check it from another machine on the LAN: `curl -o dash.png http://<mini-pc-ip>:3000/api/dash.png`
 
-On ZimaOS you can also import `docker-compose.yml` through Apps -> Custom App instead of using the CLI.
+On ZimaOS the UI cannot build images, so build over SSH first and then import
+`deploy/zimaos.compose.yml` through Apps -> "+" -> Install a customized app. That file runs the
+image that was just built (`kindle-dash:local`) instead of pulling one:
+
+```sh
+ssh <box> 'cd /DATA/AppData/kindle-dash && git pull   && DOCKER_CONFIG=/DATA/AppData/kindle-dash/.docker docker build -t kindle-dash:local .'
+```
+
+The `DOCKER_CONFIG` override is needed because ZimaOS points `$HOME` at a root-owned `/DATA`, which
+stops the Docker CLI plugins (`build`, `compose`) from loading. Rebuild the same way after a `git
+pull`, then restart the app from the UI.
 Give the machine a DHCP reservation: the Kindle has no mDNS resolver, so the device config needs an IP,
 not a `.local` name. Keep it on plain HTTP, the Kindle's CA bundle is too old to be worth fighting.
 

@@ -1,0 +1,59 @@
+# Compose file for the ZimaOS UI (Apps -> "+" -> Install a customized app).
+# It runs the image built on the box, so build it over SSH first:
+#   cd /DATA/AppData/kindle-dash && git pull
+#   DOCKER_CONFIG=/DATA/AppData/kindle-dash/.docker docker build -t kindle-dash:local .
+name: kindle-dash
+
+services:
+  kindle-dash:
+    image: kindle-dash:local
+    # The image is built locally and lives in no registry
+    pull_policy: never
+    container_name: kindle-dash
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    # Chromium crashes on the default 64MB /dev/shm
+    shm_size: "1gb"
+    environment:
+      TZ: Europe/Rome
+      DASH_TZ: Europe/Rome
+      DASH_PRERENDER: "1"
+      DASH_TTL_MS: "300000"
+      SCREEN_WIDTH: "800"
+      SCREEN_HEIGHT: "600"
+      DASH_ROTATE: "90"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    x-casaos:
+      ports:
+        - container: "3000"
+          description:
+            en_us: Dashboard and PNG endpoint
+
+x-casaos:
+  architectures:
+    - amd64
+  main: kindle-dash
+  author: AlexPagnotta
+  developer: AlexPagnotta
+  category: Utilities
+  title:
+    en_us: Kindle Dash
+  tagline:
+    en_us: E-ink dashboard rendered for a jailbroken Kindle
+  description:
+    en_us: >-
+      Renders a dashboard with headless Chromium and serves it as a PNG at
+      /api/dash.png, which the Kindle fetches and draws on its e-ink panel.
+  index: /
+  port_map: "3000"
+  scheme: http
