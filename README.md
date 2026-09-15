@@ -122,7 +122,13 @@ ssh <box> /DATA/AppData/kindle-dash/deploy/update.sh
 ```
 
 That pulls the repo, rebuilds, publishes, and recreates the container from the compose file ZimaOS
-stores at `/var/lib/casaos/apps/kindle-dash/docker-compose.yml`, which keeps the UI in sync.
+stores for the app, so the UI stays in sync. It finds that file through the container's own labels,
+because the UI names the compose project itself (something like `quizzical_eleanor`) rather than
+using the name in the file. Those files are also root-only and `sudo` needs a password, so the script
+reads it through a throwaway container.
+
+The image is tagged twice, `localhost:5000/kindle-dash:latest` and `kindle-dash:local`, so the
+rebuild lands whichever of the two the installed app happens to reference.
 
 Rebuilding on its own changes nothing for the running app: the container keeps the old image until it
 is recreated, so `docker restart` is not enough. That is what the `--force-recreate` in the script is
