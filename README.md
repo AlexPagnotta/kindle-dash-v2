@@ -87,21 +87,28 @@ Built on the box, nothing leaves the LAN.
 
 3. Check it from another machine on the LAN: `curl -o dash.png http://<mini-pc-ip>:3000/api/dash.png`
 
-On ZimaOS the UI cannot build images, so build over SSH first and then import
-`deploy/zimaos.compose.yml` through Apps -> "+" -> Install a customized app. That file runs the
-image that was just built (`kindle-dash:local`) instead of pulling one:
+On ZimaOS the UI cannot build images and always pulls, so the image is served by a small registry
+running on the box itself. Build and publish it over SSH, then import `deploy/zimaos.compose.yml`
+through Apps -> "+" -> Install a customized app.
 
 ```sh
-ssh <box> 'cd /DATA/AppData/kindle-dash && git pull   && DOCKER_CONFIG=/DATA/AppData/kindle-dash/.docker docker build -t kindle-dash:local .'
+# once: a registry on the box, so the ZimaOS UI has something to pull from
+ssh <box> 'DOCKER_CONFIG=/DATA/AppData/kindle-dash/.docker docker run -d --name registry \
+  --restart unless-stopped -p 5000:5000 \
+  -v /DATA/AppData/registry/data:/var/lib/registry registry:2'
+
+# every time: build, publish, restart
+ssh <box> /DATA/AppData/kindle-dash/deploy/update.sh
 ```
 
 The `DOCKER_CONFIG` override is needed because ZimaOS points `$HOME` at a root-owned `/DATA`, which
-stops the Docker CLI plugins (`build`, `compose`) from loading. Rebuild the same way after a `git
-pull`, then restart the app from the UI.
-Give the machine a DHCP reservation: the Kindle has no mDNS resolver, so the device config needs an IP,
-not a `.local` name. Keep it on plain HTTP, the Kindle's CA bundle is too old to be worth fighting.
+stops the Docker CLI plugins (`build`, `compose`) from loading. `update.sh` sets it itself.
 
-Updating later: `git pull && docker compose up -d --build`.
+Rebuilding alone changes nothing for the running app: the container keeps the old image until it is
+recreated, which is the `--force-recreate` at the end of `update.sh`. `docker restart` is not enough.
+
+The app survives reboots: `restart: unless-stopped` brings it back with the Docker daemon. Only the
+cached PNG is lost, and the prerender job rebuilds it a few seconds after start.
 
 ### Kindle
 

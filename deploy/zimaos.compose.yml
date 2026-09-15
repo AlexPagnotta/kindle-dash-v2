@@ -1,14 +1,14 @@
 # Compose file for the ZimaOS UI (Apps -> "+" -> Install a customized app).
-# It runs the image built on the box, so build it over SSH first:
+# The UI always pulls, so the image is served by a registry running on the box itself.
+# Build and publish it over SSH first, or just run deploy/update.sh:
 #   cd /DATA/AppData/kindle-dash && git pull
-#   DOCKER_CONFIG=/DATA/AppData/kindle-dash/.docker docker build -t kindle-dash:local .
+#   DOCKER_CONFIG=… docker build -t localhost:5000/kindle-dash:latest .
+#   DOCKER_CONFIG=… docker push localhost:5000/kindle-dash:latest
 name: kindle-dash
 
 services:
   kindle-dash:
-    image: kindle-dash:local
-    # The image is built locally and lives in no registry
-    pull_policy: never
+    image: localhost:5000/kindle-dash:latest
     container_name: kindle-dash
     restart: unless-stopped
     ports:
