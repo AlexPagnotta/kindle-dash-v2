@@ -25,9 +25,17 @@ log() {
   fi
 }
 
+# Upstart on most firmware, systemd on the newest
+framework() {
+  if command -v "$1" >/dev/null 2>&1; then
+    "$1" lab126_gui >/dev/null 2>&1 && return 0
+  fi
+  systemctl "$1" lab126_gui >/dev/null 2>&1 || true
+}
+
 cleanup() {
   log "stopping"
-  [ "$STOP_FRAMEWORK" = "1" ] && start lab126_gui >/dev/null 2>&1
+  [ "$STOP_FRAMEWORK" = "1" ] && framework start
   lipc-set-prop com.lab126.powerd preventScreenSaver 0 >/dev/null 2>&1
   rm -f "$PIDFILE"
   exit 0
@@ -66,10 +74,12 @@ fetch() {
 
 draw() {
   if [ $((COUNT % FULL_REFRESH_EVERY)) -eq 0 ]; then
-    "$FBINK" -q -f -c -g file="$IMAGE"
+    ERR=$("$FBINK" -f -c -g file="$IMAGE" 2>&1 >/dev/null) || true
   else
-    "$FBINK" -q -g file="$IMAGE"
+    ERR=$("$FBINK" -g file="$IMAGE" 2>&1 >/dev/null) || true
   fi
+
+  [ -n "$ERR" ] && log "fbink: $ERR"
 }
 
 rest() {
@@ -94,7 +104,13 @@ fi
 echo $$ > "$PIDFILE"
 log "starting: refresh every ${INTERVAL}s from $DASH_URL"
 
-[ "$STOP_FRAMEWORK" = "1" ] && stop lab126_gui >/dev/null 2>&1
+if [ "$STOP_FRAMEWORK" = "1" ]; then
+  # Otherwise the Kindle UI redraws over the dashboard as soon as KUAL exits
+  log "stopping the Kindle UI"
+  framework stop
+  sleep 2
+fi
+
 lipc-set-prop com.lab126.powerd preventScreenSaver 1 >/dev/null 2>&1
 
 COUNT=0

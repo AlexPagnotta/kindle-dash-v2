@@ -210,7 +210,12 @@ Wi-Fi access set up.
    `SCREEN_WIDTH` and `SCREEN_HEIGHT` swapped, since the framebuffer is portrait.
 
 Logs land in `/mnt/us/kindle-dash/dash.log`, capped at 512KB. Once a few refresh cycles have landed,
-turn on `SUSPEND=1` in `dash.conf` for the battery win, and `STOP_FRAMEWORK=1` to drop the Kindle UI.
+turn on `SUSPEND=1` in `dash.conf` for the battery win.
+
+`STOP_FRAMEWORK=1` is needed in practice, not optional: with the Kindle UI running, it redraws over
+the dashboard the moment KUAL exits, so the panel goes back to the home screen and the log still
+says `refreshed`. Stopping it means no UI and no KUAL, so to get back you either stop the script over
+SSH or hold the power button to reboot.
 
 #### Device settings (`device/dash.conf`)
 
@@ -220,7 +225,7 @@ turn on `SUSPEND=1` in `dash.conf` for the battery win, and `STOP_FRAMEWORK=1` t
 | `INTERVAL` | `300` | Seconds between refreshes |
 | `FULL_REFRESH_EVERY` | `12` | Full flashing refresh every N cycles, clears ghosting |
 | `SUSPEND` | `0` | `1` suspends between refreshes via RTC wake. Big battery win, turn it on once the loop is proven |
-| `STOP_FRAMEWORK` | `0` | `1` stops the Kindle UI while the dashboard runs |
+| `STOP_FRAMEWORK` | `0` | `1` stops the Kindle UI while the dashboard runs. Needed, or the UI redraws over the panel |
 
 ### Orientation
 
