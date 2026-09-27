@@ -71,6 +71,7 @@ device/             what runs on the Kindle: dash.sh, KUAL extension, installer
 | `docker compose down` | Stop it |
 | `ssh <box> /DATA/AppData/kindle-dash/deploy/init.sh` | One-time ZimaOS setup: registry, build, publish |
 | `ssh <box> /DATA/AppData/kindle-dash/deploy/update.sh` | Rebuild on the box and restart the ZimaOS app |
+| `./device/get-fbink.sh [variant]` | Download the fbink binary into `device/` |
 | `./device/install.sh <kindle-ip>` | Push the device side to the Kindle over SSH |
 
 ## Deploy
@@ -172,17 +173,33 @@ Updating: `git pull && docker compose up -d --build`.
 
 Needs a jailbroken device with KUAL and SSH access (USBNet or Wi-Fi).
 
-1. Download the FBInk static binary for your device from the
-   [releases](https://github.com/NiLuJe/FBInk/releases) and drop it in `device/` as `fbink`.
+1. Get the FBInk binary. Upstream publishes source only, so `get-fbink.sh` lifts the build that
+   ships inside KOReader's Kindle bundle and saves it as `device/fbink`:
+
+   ```sh
+   ./device/get-fbink.sh            # Paperwhite 2 and later, including the basic Kindles
+   ./device/get-fbink.sh kindlehf   # Kindle 11th gen, Paperwhite 5, Scribe
+   ./device/get-fbink.sh kindle     # Kindle 4, 5, Touch, Paperwhite 1
+   ```
 2. `cp device/dash.conf.example device/dash.conf` and set `DASH_URL` to
    `http://<mini-pc-ip>:6800/api/dash.png`. Always the IP and port, never an HTTPS hostname: the
    Kindle's CA bundle is too old to validate a modern certificate.
 3. `./device/install.sh <kindle-ip>` (defaults to `192.168.15.244`, the USBNet address). It copies
    `dash.sh`, `fbink` and `dash.conf` to `/mnt/us/kindle-dash/`, and the KUAL extension to
    `/mnt/us/extensions/`.
-4. On the Kindle: KUAL -> Kindle Dash -> Start dashboard.
+4. Check the binary runs on the device and reports the panel you expect:
 
-Logs land in `/mnt/us/kindle-dash/dash.log`, capped at 512KB.
+   ```sh
+   ssh root@<kindle-ip> /mnt/us/kindle-dash/fbink -e
+   ```
+
+   `Exec format error` means the wrong variant, so try another one from step 1. The reported
+   resolution should be `SCREEN_WIDTH` and `SCREEN_HEIGHT` swapped, since the framebuffer is portrait.
+
+5. On the Kindle: KUAL -> Kindle Dash -> Start dashboard.
+
+Logs land in `/mnt/us/kindle-dash/dash.log`, capped at 512KB. Once a few refresh cycles have landed,
+turn on `SUSPEND=1` in `dash.conf` for the battery win, and `STOP_FRAMEWORK=1` to drop the Kindle UI.
 
 #### Device settings (`device/dash.conf`)
 

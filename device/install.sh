@@ -8,8 +8,7 @@ KINDLE="${1:-192.168.15.244}"
 HERE=$(cd "$(dirname "$0")" && pwd)
 
 if [ ! -f "$HERE/fbink" ]; then
-  echo "Missing $HERE/fbink"
-  echo "Download the static binary for your device from https://github.com/NiLuJe/FBInk/releases"
+  echo "Missing $HERE/fbink, run ./get-fbink.sh first"
   exit 1
 fi
 
