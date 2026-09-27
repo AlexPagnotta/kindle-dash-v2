@@ -20,6 +20,12 @@ if [ -f "$PIDFILE" ]; then
   rm -f "$PIDFILE"
 fi
 
-# Through sh, so a missing exec bit on FAT cannot stop it
-nohup sh "$ROOT/dash.sh" >> "$LOG" 2>&1 &
-say "launched pid $!"
+# In its own session, or stopping the Kindle UI takes the script down with it, since KUAL
+# runs inside that session. Through sh, so a missing exec bit on FAT cannot stop it either.
+if command -v setsid > /dev/null 2>&1; then
+  setsid sh "$ROOT/dash.sh" >> "$LOG" 2>&1 &
+  say "launched pid $! (setsid)"
+else
+  nohup sh "$ROOT/dash.sh" >> "$LOG" 2>&1 &
+  say "launched pid $! (nohup, no setsid on this firmware)"
+fi

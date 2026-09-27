@@ -106,10 +106,14 @@ echo $$ > "$PIDFILE"
 log "starting: refresh every ${INTERVAL}s from $DASH_URL"
 
 if [ "$STOP_FRAMEWORK" = "1" ]; then
-  # Otherwise the Kindle UI redraws over the dashboard as soon as KUAL exits
+  # Otherwise the Kindle UI redraws over the dashboard as soon as KUAL exits.
+  # Stopping it signals everything in that session, so deafen ourselves while it happens.
   log "stopping the Kindle UI"
+  trap '' TERM HUP
   framework stop
-  sleep 2
+  sleep 5
+  trap cleanup TERM
+  log "Kindle UI stopped"
 fi
 
 lipc-set-prop com.lab126.powerd preventScreenSaver 1 >/dev/null 2>&1
