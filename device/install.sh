@@ -8,13 +8,13 @@ KINDLE="${1:-192.168.15.244}"
 HERE=$(cd "$(dirname "$0")" && pwd)
 
 if [ ! -f "$HERE/fbink" ]; then
-  echo "Missing $HERE/fbink, run ./get-fbink.sh first"
+  echo "Missing $HERE/fbink, run ./build-fbink.sh first"
   exit 1
 fi
 
 echo "Installing to root@$KINDLE"
 ssh "root@$KINDLE" "mkdir -p /mnt/us/kindle-dash /mnt/us/extensions"
-scp "$HERE/dash.sh" "$HERE"/fbink* "root@$KINDLE:/mnt/us/kindle-dash/"
+scp "$HERE/dash.sh" "$HERE/fbink" "root@$KINDLE:/mnt/us/kindle-dash/"
 scp -r "$HERE/kual/kindle-dash" "root@$KINDLE:/mnt/us/extensions/"
 
 if [ -f "$HERE/dash.conf" ]; then

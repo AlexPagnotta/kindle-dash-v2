@@ -71,7 +71,7 @@ device/             what runs on the Kindle: dash.sh, KUAL extension, installer
 | `docker compose down` | Stop it |
 | `ssh <box> /DATA/AppData/kindle-dash/deploy/init.sh` | One-time ZimaOS setup: registry, build, publish |
 | `ssh <box> /DATA/AppData/kindle-dash/deploy/update.sh` | Rebuild on the box and restart the ZimaOS app |
-| `./device/get-fbink.sh [variant]` | Download the fbink binary into `device/` |
+| `./device/build-fbink.sh` | Cross-compile fbink into `device/fbink` |
 | `./device/install-usb.sh` | Install the device side over a USB cable |
 | `./device/install.sh <kindle-ip>` | Install the device side over SSH |
 
@@ -175,17 +175,16 @@ Updating: `git pull && docker compose up -d --build`.
 Needs a jailbroken device with KUAL. Install over a USB cable, or over SSH if you have USBNet or
 Wi-Fi access set up.
 
-1. Get an FBInk binary that can draw images. Upstream publishes source only, and the build inside
-   KOReader's bundle is compiled without image support, so it passes every check and then refuses
-   to draw. Cross-compile one instead:
+1. Build the FBInk binary. Upstream publishes source only, and the build bundled with KOReader is
+   compiled without image support, so it answers every other check and then refuses to draw:
 
    ```sh
-   ./device/build-fbink.sh          # needs Docker, writes device/fbink.full-static
+   ./device/build-fbink.sh   # needs Docker, writes device/fbink
    ```
 
-   `./device/get-fbink.sh all` additionally drops in KOReader's four ABI variants as fallbacks.
-   `dash.sh` probes whatever is present by actually drawing the PNG, keeps the first that works,
-   and logs which one it picked along with the panel info.
+   It cross-compiles for ARM hard-float and links statically, so the Kindle's old glibc is not
+   involved. `dash.sh` verifies it by drawing the first PNG it downloads, and says so in the log if
+   that fails.
 2. `cp device/dash.conf.example device/dash.conf` and set `DASH_URL` to
    `http://<mini-pc-ip>:6800/api/dash.png`. Always the IP and port, never an HTTPS hostname: the
    Kindle's CA bundle is too old to validate a modern certificate.
@@ -206,11 +205,9 @@ Wi-Fi access set up.
 
 4. On the Kindle: KUAL -> Kindle Dash -> Start dashboard.
 
-   If the panel stays blank, the usual cause is the wrong fbink build. `dash.log` shows
-   `fbink not found or not executable`, or `Exec format error`, so fetch another variant from step 1
-   and reinstall. With SSH you can check directly with `ssh root@<kindle-ip>
-   /mnt/us/kindle-dash/fbink -e`, which also prints the panel resolution: it should be
-   `SCREEN_WIDTH` and `SCREEN_HEIGHT` swapped, since the framebuffer is portrait.
+   If the panel stays blank, read `dash.log` and `start.log` in `/mnt/us/kindle-dash/`. They cover
+   the three things that actually go wrong: the script not starting at all, fbink not drawing, and
+   the download failing.
 
 Logs land in `/mnt/us/kindle-dash/dash.log`, capped at 512KB. Once a few refresh cycles have landed,
 turn on `SUSPEND=1` in `dash.conf` for the battery win.

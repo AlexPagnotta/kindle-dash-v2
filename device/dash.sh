@@ -128,25 +128,22 @@ rest() {
   fi
 }
 
-# Two things can be wrong with an fbink build: the ABI (a mismatch fails as "not found", its
-# dynamic loader being absent) and the feature set (KOReader ships one built without image
-# support, which passes every other check and then refuses to draw). So the test is a real draw.
-# Always from /tmp: FAT keeps no exec bit, and a USB cable unmounts /mnt/us under a running script.
-pick_fbink() {
-  for candidate in "$ROOT"/fbink.full-* "$FBINK" "$ROOT"/fbink.*; do
-    [ -f "$candidate" ] || continue
-    cp "$candidate" /tmp/fbink 2>/dev/null || continue
-    chmod +x /tmp/fbink
+# Run it from /tmp: FAT keeps no exec bit, and a USB cable unmounts /mnt/us under a running script
+setup_fbink() {
+  [ -f "$FBINK" ] || { log "no fbink at $FBINK, run device/build-fbink.sh"; return 1; }
 
-    /tmp/fbink -g file="$IMAGE" > /dev/null 2>&1 || continue
+  cp "$FBINK" /tmp/fbink 2>/dev/null || return 1
+  chmod +x /tmp/fbink
 
-    FBINK=/tmp/fbink
-    log "using $(basename "$candidate")"
-    log "panel: $(/tmp/fbink -e 2>&1 | tr '\n' ' ')"
-    return 0
-  done
+  # A build without image support passes every other check and then refuses to draw, so the
+  # test is a real draw
+  if ! /tmp/fbink -g file="$IMAGE" > /dev/null 2>&1; then
+    log "fbink cannot draw here, rebuild it with device/build-fbink.sh"
+    return 1
+  fi
 
-  return 1
+  FBINK=/tmp/fbink
+  return 0
 }
 
 echo $$ > "$PIDFILE"
@@ -175,18 +172,14 @@ else
 fi
 
 COUNT=0
-PICKED=0
+READY=0
 while true; do
   wifi 1
   if fetch; then
-    # The probe needs a real PNG, so it waits for the first successful fetch
-    if [ "$PICKED" = "0" ]; then
-      if pick_fbink; then
-        PICKED=1
-      else
-        log "no fbink can draw here: $(uname -m), loaders: $(ls /lib/ld-* 2>/dev/null | tr '\n' ' ')"
-        cleanup
-      fi
+    # Checking fbink needs a real PNG, so it waits for the first successful fetch
+    if [ "$READY" = "0" ]; then
+      setup_fbink || cleanup
+      READY=1
     fi
 
     draw

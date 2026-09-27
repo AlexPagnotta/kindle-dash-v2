@@ -1,5 +1,5 @@
 #!/bin/sh
-# Cross-compiles FBInk for a Kindle, into device/fbink.full-static.
+# Cross-compiles FBInk for a Kindle, into device/fbink.
 #
 # Needed because upstream ships no binaries, and the build bundled with KOReader is compiled
 # without image support: it answers every probe and then fails with
@@ -21,10 +21,9 @@ docker run --rm -v "$HERE:/out" debian:bookworm sh -c '
   git clone --depth 1 --recursive -q https://github.com/NiLuJe/FBInk.git /src
   cd /src
   make CROSS_TC=arm-linux-gnueabihf KINDLE=1 static > /dev/null 2>&1
-  cp Release/fbink /out/fbink.full-dynamic
-  arm-linux-gnueabihf-gcc -O2 -static -LRelease -o /out/fbink.full-static \
+  arm-linux-gnueabihf-gcc -O2 -static -LRelease -o /out/fbink \
     Release/fbink_cmd.o -l:libfbink.a -lm
 '
 
-chmod +x "$HERE/fbink.full-static" "$HERE/fbink.full-dynamic"
-echo "Built $HERE/fbink.full-static"
+chmod +x "$HERE/fbink"
+echo "Built $HERE/fbink"

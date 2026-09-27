@@ -21,12 +21,12 @@ if [ ! -d "$VOLUME/documents" ] && [ ! -d "$VOLUME/system" ]; then
 fi
 
 if [ ! -f "$HERE/fbink" ]; then
-  echo "Missing $HERE/fbink, run ./get-fbink.sh first" >&2
+  echo "Missing $HERE/fbink, run ./build-fbink.sh first" >&2
   exit 1
 fi
 
 mkdir -p "$VOLUME/kindle-dash" "$VOLUME/extensions"
-cp "$HERE/dash.sh" "$HERE"/fbink* "$VOLUME/kindle-dash/"
+cp "$HERE/dash.sh" "$HERE/fbink" "$VOLUME/kindle-dash/"
 
 if [ -f "$HERE/dash.conf" ]; then
   cp "$HERE/dash.conf" "$VOLUME/kindle-dash/"
