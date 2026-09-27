@@ -91,14 +91,29 @@ rest() {
   fi
 }
 
-# Always run it from /tmp: FAT keeps no exec bit, and plugging in a USB cable unmounts /mnt/us
-# from under a running script
-if [ -f "$FBINK" ]; then
-  cp "$FBINK" /tmp/fbink 2>/dev/null && chmod +x /tmp/fbink && FBINK=/tmp/fbink
-fi
+# Which fbink build runs here depends on the model's ABI, and a wrong one fails as "not found"
+# because its dynamic loader is missing. So try them until one answers.
+# Always from /tmp: FAT keeps no exec bit, and a USB cable unmounts /mnt/us under a running script.
+pick_fbink() {
+  for candidate in "$FBINK" "$ROOT"/fbink.*; do
+    [ -f "$candidate" ] || continue
+    cp "$candidate" /tmp/fbink 2>/dev/null || continue
+    chmod +x /tmp/fbink
 
-if [ ! -x "$FBINK" ]; then
-  echo "fbink not found or not executable at $FBINK" >&2
+    if INFO=$(/tmp/fbink -e 2>&1); then
+      FBINK=/tmp/fbink
+      log "using $(basename "$candidate")"
+      log "panel: $(echo "$INFO" | tr '\n' ' ')"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+if ! pick_fbink; then
+  log "no working fbink: $(uname -m), loaders: $(ls /lib/ld-* 2>/dev/null | tr '\n' ' ')"
+  log "run ./device/get-fbink.sh all and reinstall"
   exit 1
 fi
 

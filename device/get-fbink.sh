@@ -9,6 +9,8 @@
 #   kindlehf             newest hard-float models (Kindle 11th gen, Paperwhite 5, Scribe)
 #   kindle               Kindle 4, 5, Touch, Paperwhite 1
 #   kindle-legacy        Kindle 2, 3, DX
+#   all                  every variant, saved as fbink.<variant>, and dash.sh picks the one that
+#                        runs on the device. Costs ~4MB on the Kindle and settles the question.
 
 set -e
 
@@ -21,14 +23,22 @@ TAG=$(curl -fsSL https://api.github.com/repos/koreader/koreader/releases/latest 
   sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -1)
 [ -n "$TAG" ] || { echo "Could not read the latest KOReader release" >&2; exit 1; }
 
-URL="https://github.com/koreader/koreader/releases/download/$TAG/koreader-$VARIANT-$TAG.zip"
-echo "Fetching $VARIANT fbink from KOReader $TAG"
-curl -fL --progress-bar -o "$TMP/ko.zip" "$URL"
+fetch() {
+  URL="https://github.com/koreader/koreader/releases/download/$TAG/koreader-$1-$TAG.zip"
+  echo "Fetching $1 from KOReader $TAG"
+  curl -fL --progress-bar -o "$TMP/ko.zip" "$URL"
+  unzip -o -q -j "$TMP/ko.zip" koreader/fbink -d "$TMP"
+  [ -f "$TMP/fbink" ] || { echo "No fbink in that bundle" >&2; exit 1; }
+  mv "$TMP/fbink" "$2"
+  chmod +x "$2"
+  echo "Saved to $2"
+}
 
-unzip -o -q -j "$TMP/ko.zip" koreader/fbink -d "$TMP"
-[ -f "$TMP/fbink" ] || { echo "No fbink in that bundle" >&2; exit 1; }
-
-mv "$TMP/fbink" "$HERE/fbink"
-chmod +x "$HERE/fbink"
-echo "Saved to $HERE/fbink"
-file "$HERE/fbink" 2>/dev/null || true
+if [ "$VARIANT" = "all" ]; then
+  for v in kindlepw2 kindlehf kindle kindle-legacy; do
+    fetch "$v" "$HERE/fbink.$v"
+  done
+  cp "$HERE/fbink.kindlepw2" "$HERE/fbink"
+else
+  fetch "$VARIANT" "$HERE/fbink"
+fi

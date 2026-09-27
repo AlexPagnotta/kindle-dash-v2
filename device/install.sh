@@ -14,7 +14,7 @@ fi
 
 echo "Installing to root@$KINDLE"
 ssh "root@$KINDLE" "mkdir -p /mnt/us/kindle-dash /mnt/us/extensions"
-scp "$HERE/dash.sh" "$HERE/fbink" "root@$KINDLE:/mnt/us/kindle-dash/"
+scp "$HERE/dash.sh" "$HERE"/fbink* "root@$KINDLE:/mnt/us/kindle-dash/"
 scp -r "$HERE/kual/kindle-dash" "root@$KINDLE:/mnt/us/extensions/"
 
 if [ -f "$HERE/dash.conf" ]; then

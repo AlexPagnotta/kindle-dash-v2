@@ -26,7 +26,7 @@ if [ ! -f "$HERE/fbink" ]; then
 fi
 
 mkdir -p "$VOLUME/kindle-dash" "$VOLUME/extensions"
-cp "$HERE/dash.sh" "$HERE/fbink" "$VOLUME/kindle-dash/"
+cp "$HERE/dash.sh" "$HERE"/fbink* "$VOLUME/kindle-dash/"
 
 if [ -f "$HERE/dash.conf" ]; then
   cp "$HERE/dash.conf" "$VOLUME/kindle-dash/"
