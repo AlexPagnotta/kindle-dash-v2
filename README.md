@@ -107,7 +107,7 @@ box, which gives the UI something to pull from. Everything below runs once.
 4. **Verify** from another machine on the LAN:
 
    ```sh
-   curl -o dash.png http://<box-ip>:3000/api/dash.png
+   curl -o dash.png http://<box-ip>:6800/api/dash.png
    ```
 
    Expect a 600x800 PNG holding the landscape dashboard rotated onto its side.
@@ -156,7 +156,7 @@ Needs a jailbroken device with KUAL and SSH access (USBNet or Wi-Fi).
 1. Download the FBInk static binary for your device from the
    [releases](https://github.com/NiLuJe/FBInk/releases) and drop it in `device/` as `fbink`.
 2. `cp device/dash.conf.example device/dash.conf` and set `DASH_URL` to
-   `http://<mini-pc-ip>:3000/api/dash.png`.
+   `http://<mini-pc-ip>:6800/api/dash.png`.
 3. `./device/install.sh <kindle-ip>` (defaults to `192.168.15.244`, the USBNet address). It copies
    `dash.sh`, `fbink` and `dash.conf` to `/mnt/us/kindle-dash/`, and the KUAL extension to
    `/mnt/us/extensions/`.
@@ -168,7 +168,7 @@ Logs land in `/mnt/us/kindle-dash/dash.log`, capped at 512KB.
 
 | Setting | Default | Notes |
 | --- | --- | --- |
-| `DASH_URL` | - | Full URL of the PNG endpoint, by IP |
+| `DASH_URL` | - | Full URL of the PNG endpoint, by IP and host port (`6800` by default) |
 | `INTERVAL` | `300` | Seconds between refreshes |
 | `FULL_REFRESH_EVERY` | `12` | Full flashing refresh every N cycles, clears ghosting |
 | `SUSPEND` | `0` | `1` suspends between refreshes via RTC wake. Big battery win, turn it on once the loop is proven |

@@ -12,7 +12,8 @@ services:
     container_name: kindle-dash
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      # Host port, mnemonic for the 600x800 panel. The container always listens on 3000.
+      - "6800:3000"
     # Chromium crashes on the default 64MB /dev/shm
     shm_size: "1gb"
     environment:
@@ -55,5 +56,5 @@ x-casaos:
       Renders a dashboard with headless Chromium and serves it as a PNG at
       /api/dash.png, which the Kindle fetches and draws on its e-ink panel.
   index: /
-  port_map: "3000"
+  port_map: "6800"
   scheme: http

@@ -7,7 +7,7 @@ set -u
 ROOT=$(cd "$(dirname "$0")" && pwd)
 [ -f "$ROOT/dash.conf" ] && . "$ROOT/dash.conf"
 
-DASH_URL="${DASH_URL:-http://192.168.1.50:3000/api/dash.png}"
+DASH_URL="${DASH_URL:-http://192.168.1.50:6800/api/dash.png}"
 INTERVAL="${INTERVAL:-300}"
 FULL_REFRESH_EVERY="${FULL_REFRESH_EVERY:-12}"
 SUSPEND="${SUSPEND:-0}"
