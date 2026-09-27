@@ -91,31 +91,26 @@ rest() {
   fi
 }
 
-# Which fbink build runs here depends on the model's ABI, and a wrong one fails as "not found"
-# because its dynamic loader is missing. So try them until one answers.
+# Two things can be wrong with an fbink build: the ABI (a mismatch fails as "not found", its
+# dynamic loader being absent) and the feature set (KOReader ships one built without image
+# support, which passes every other check and then refuses to draw). So the test is a real draw.
 # Always from /tmp: FAT keeps no exec bit, and a USB cable unmounts /mnt/us under a running script.
 pick_fbink() {
-  for candidate in "$FBINK" "$ROOT"/fbink.*; do
+  for candidate in "$ROOT"/fbink.full-* "$FBINK" "$ROOT"/fbink.*; do
     [ -f "$candidate" ] || continue
     cp "$candidate" /tmp/fbink 2>/dev/null || continue
     chmod +x /tmp/fbink
 
-    if INFO=$(/tmp/fbink -e 2>&1); then
-      FBINK=/tmp/fbink
-      log "using $(basename "$candidate")"
-      log "panel: $(echo "$INFO" | tr '\n' ' ')"
-      return 0
-    fi
+    /tmp/fbink -g file="$IMAGE" > /dev/null 2>&1 || continue
+
+    FBINK=/tmp/fbink
+    log "using $(basename "$candidate")"
+    log "panel: $(/tmp/fbink -e 2>&1 | tr '\n' ' ')"
+    return 0
   done
 
   return 1
 }
-
-if ! pick_fbink; then
-  log "no working fbink: $(uname -m), loaders: $(ls /lib/ld-* 2>/dev/null | tr '\n' ' ')"
-  log "run ./device/get-fbink.sh all and reinstall"
-  exit 1
-fi
 
 echo $$ > "$PIDFILE"
 log "starting: refresh every ${INTERVAL}s from $DASH_URL"
@@ -134,9 +129,20 @@ fi
 lipc-set-prop com.lab126.powerd preventScreenSaver 1 >/dev/null 2>&1
 
 COUNT=0
+PICKED=0
 while true; do
   wifi 1
   if fetch; then
+    # The probe needs a real PNG, so it waits for the first successful fetch
+    if [ "$PICKED" = "0" ]; then
+      if pick_fbink; then
+        PICKED=1
+      else
+        log "no fbink can draw here: $(uname -m), loaders: $(ls /lib/ld-* 2>/dev/null | tr '\n' ' ')"
+        cleanup
+      fi
+    fi
+
     draw
     log "refreshed (cycle $COUNT)"
   else

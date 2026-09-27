@@ -175,14 +175,17 @@ Updating: `git pull && docker compose up -d --build`.
 Needs a jailbroken device with KUAL. Install over a USB cable, or over SSH if you have USBNet or
 Wi-Fi access set up.
 
-1. Get the FBInk binary. Upstream publishes source only, so `get-fbink.sh` lifts the build that
-   ships inside KOReader's Kindle bundle and saves it as `device/fbink`:
+1. Get an FBInk binary that can draw images. Upstream publishes source only, and the build inside
+   KOReader's bundle is compiled without image support, so it passes every check and then refuses
+   to draw. Cross-compile one instead:
 
    ```sh
-   ./device/get-fbink.sh            # Paperwhite 2 and later, including the basic Kindles
-   ./device/get-fbink.sh kindlehf   # Kindle 11th gen, Paperwhite 5, Scribe
-   ./device/get-fbink.sh kindle     # Kindle 4, 5, Touch, Paperwhite 1
+   ./device/build-fbink.sh          # needs Docker, writes device/fbink.full-static
    ```
+
+   `./device/get-fbink.sh all` additionally drops in KOReader's four ABI variants as fallbacks.
+   `dash.sh` probes whatever is present by actually drawing the PNG, keeps the first that works,
+   and logs which one it picked along with the panel info.
 2. `cp device/dash.conf.example device/dash.conf` and set `DASH_URL` to
    `http://<mini-pc-ip>:6800/api/dash.png`. Always the IP and port, never an HTTPS hostname: the
    Kindle's CA bundle is too old to validate a modern certificate.
