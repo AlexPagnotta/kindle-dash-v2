@@ -4,14 +4,18 @@
 # name: the Kindle has no mDNS resolver and its CA bundle is too old to validate a modern cert.
 DASH_URL="http://192.168.1.50:6800/api/dash.png"
 
-# Seconds between refreshes
-INTERVAL=300
+# Seconds between refreshes. 60 is fine on mains, where nothing is saved by waiting.
+INTERVAL=60
 
 # Do a full flashing refresh every N cycles, to clear e-ink ghosting
 FULL_REFRESH_EVERY=12
 
-# 1 = suspend the device between refreshes (big battery win, test the loop first)
+# 1 = suspend the device between refreshes. A big battery win, pointless on mains.
 SUSPEND=0
+
+# 1 = turn the Wi-Fi off between refreshes. Saves battery, costs seconds of reconnection each
+# cycle, so leave it at 0 when the Kindle is plugged in.
+WIFI_CYCLE=0
 
 # 1 = stop the Kindle UI while the dashboard runs
 STOP_FRAMEWORK=0

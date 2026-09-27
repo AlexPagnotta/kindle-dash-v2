@@ -209,8 +209,12 @@ Wi-Fi access set up.
    the three things that actually go wrong: the script not starting at all, fbink not drawing, and
    the download failing.
 
-Logs land in `/mnt/us/kindle-dash/dash.log`, capped at 512KB. Once a few refresh cycles have landed,
-turn on `SUSPEND=1` in `dash.conf` for the battery win.
+Logs land in `/mnt/us/kindle-dash/dash.log` and `start.log`, capped at 512KB.
+
+The defaults assume the Kindle sits on a desk with the cable plugged in, which is what this was
+built for: refresh every minute, Wi-Fi always on, no suspend. On battery the three settings that
+matter are the opposite, `INTERVAL=300`, `WIFI_CYCLE=1` and `SUSPEND=1`, which trade a stale clock
+for weeks of runtime instead of a day.
 
 `STOP_FRAMEWORK=1` is needed in practice, not optional: with the Kindle UI running, it redraws over
 the dashboard the moment KUAL exits, so the panel goes back to the home screen and the log still
@@ -227,7 +231,8 @@ says `refreshed`. Stopping it also means no KUAL, so there is no Stop button lef
 | Setting | Default | Notes |
 | --- | --- | --- |
 | `DASH_URL` | - | Full URL of the PNG endpoint, by IP and host port (`6800` by default) |
-| `INTERVAL` | `300` | Seconds between refreshes |
+| `INTERVAL` | `60` | Seconds between refreshes |
+| `WIFI_CYCLE` | `0` | `1` turns the Wi-Fi off between refreshes. Saves battery, costs reconnection time |
 | `FULL_REFRESH_EVERY` | `12` | Full flashing refresh every N cycles, clears ghosting |
 | `SUSPEND` | `0` | `1` suspends between refreshes via RTC wake. Big battery win, turn it on once the loop is proven |
 | `STOP_FRAMEWORK` | `0` | `1` stops the Kindle UI while the dashboard runs. Needed, or the UI redraws over the panel |

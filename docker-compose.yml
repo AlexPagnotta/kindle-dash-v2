@@ -12,7 +12,7 @@ services:
       TZ: ${DASH_TZ:-Europe/Rome}
       DASH_TZ: ${DASH_TZ:-Europe/Rome}
       DASH_PRERENDER: "1"
-      DASH_TTL_MS: ${DASH_TTL_MS:-300000}
+      DASH_TTL_MS: ${DASH_TTL_MS:-60000}
       SCREEN_WIDTH: ${SCREEN_WIDTH:-800}
       SCREEN_HEIGHT: ${SCREEN_HEIGHT:-600}
       DASH_ROTATE: ${DASH_ROTATE:-90}

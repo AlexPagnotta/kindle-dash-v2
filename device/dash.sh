@@ -12,6 +12,7 @@ INTERVAL="${INTERVAL:-300}"
 FULL_REFRESH_EVERY="${FULL_REFRESH_EVERY:-12}"
 SUSPEND="${SUSPEND:-0}"
 STOP_FRAMEWORK="${STOP_FRAMEWORK:-0}"
+WIFI_CYCLE="${WIFI_CYCLE:-1}"
 POWER_EXIT="${POWER_EXIT:-1}"
 POWER_EXIT_WINDOW="${POWER_EXIT_WINDOW:-6}"
 FBINK="${FBINK:-$ROOT/fbink}"
@@ -92,7 +93,10 @@ power_watch() {
   log "power watch ended"
 }
 
+# On mains there is nothing to save, and cycling the radio costs seconds of reconnection per refresh
 wifi() {
+  [ "$WIFI_CYCLE" = "0" ] && [ "$1" = "0" ] && return 0
+
   lipc-set-prop com.lab126.cmd wirelessEnable "$1" >/dev/null 2>&1
   [ "$1" = "0" ] && return 0
 

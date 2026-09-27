@@ -20,7 +20,8 @@ services:
       TZ: Europe/Rome
       DASH_TZ: Europe/Rome
       DASH_PRERENDER: "1"
-      DASH_TTL_MS: "300000"
+      # The device is on mains and refreshes every minute, so keep the cache just as fresh
+      DASH_TTL_MS: "60000"
       SCREEN_WIDTH: "800"
       SCREEN_HEIGHT: "600"
       DASH_ROTATE: "90"
