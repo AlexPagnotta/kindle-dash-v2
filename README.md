@@ -203,6 +203,10 @@ Wi-Fi access set up.
    Either way it lands in `/mnt/us/kindle-dash/`, with the KUAL extension in `/mnt/us/extensions/`.
    Eject the drive before moving on, the Kindle cannot read it while it is mounted on your Mac.
 
+   Note that with the dashboard running the cable gives you nothing: exposing the drive is the
+   framework's job, and `STOP_FRAMEWORK=1` has stopped it, so the Kindle just charges. Reboot first,
+   or set up SSH over Wi-Fi and use `install.sh` instead.
+
 4. On the Kindle: KUAL -> Kindle Dash -> Start dashboard.
 
    If the panel stays blank, read `dash.log` and `start.log` in `/mnt/us/kindle-dash/`. They cover
