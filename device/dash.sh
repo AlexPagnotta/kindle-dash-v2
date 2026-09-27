@@ -38,7 +38,6 @@ framework() {
 cleanup() {
   log "stopping"
   [ -n "${WATCH_PID:-}" ] && kill "$WATCH_PID" 2>/dev/null
-  pkill -f lipc-wait-event 2>/dev/null
   [ "$STOP_FRAMEWORK" = "1" ] && framework start
   lipc-set-prop com.lab126.powerd preventScreenSaver 0 >/dev/null 2>&1
   rm -f "$PIDFILE"
@@ -48,37 +47,49 @@ trap cleanup INT TERM
 # Interrupts the sleep between cycles, so "Refresh now" redraws immediately
 trap 'log "manual refresh"' USR1
 
-# With the UI stopped there is no KUAL and so no way out from the device. powerd keeps running
-# though, so two power presses in quick succession stop the dashboard and bring the UI back.
+# With the UI stopped there is no KUAL and so no way out from the device. The power button is read
+# straight from the kernel: with the framework down, powerd stops publishing its lipc events.
+power_device() {
+  awk '
+    /^N: Name=/ { name = tolower($0) }
+    /^H: Handlers=/ {
+      if (name ~ /power/ && match($0, /event[0-9]+/)) {
+        print "/dev/input/" substr($0, RSTART, RLENGTH)
+        exit
+      }
+    }
+  ' /proc/bus/input/devices 2>/dev/null
+}
+
 power_watch() {
-  SEEN=0
+  DEV=$(power_device)
+
+  if [ -z "$DEV" ] || [ ! -r "$DEV" ]; then
+    log "no readable power input device, stop it over SSH or reboot"
+    log "inputs: $(grep -i '^N: Name=' /proc/bus/input/devices 2>/dev/null | tr '\n' ' ')"
+    return
+  fi
+
+  log "watching $DEV, press power twice within ${POWER_EXIT_WINDOW}s to stop"
   LAST=0
 
-  while true; do
-    lipc-wait-event -m -s 0 com.lab126.powerd '*' 2>/dev/null | while read -r EVENT; do
-      # The first few are logged so the event names can be checked against a real device
-      if [ "$SEEN" -lt 8 ]; then
-        log "power event: $EVENT"
-        SEEN=$((SEEN + 1))
-      fi
+  # Blocks until the button reports something. One press emits several events, so a short
+  # debounce collapses them into one.
+  while dd if="$DEV" bs=16 count=1 > /dev/null 2>&1; do
+    NOW=$(date +%s)
+    log "power pressed"
 
-      case "$EVENT" in
-        *creenSaver* | *uspend* | *owerButton*)
-          NOW=$(date +%s)
+    if [ "$LAST" != "0" ] && [ $((NOW - LAST)) -le "$POWER_EXIT_WINDOW" ]; then
+      log "power pressed twice, stopping"
+      kill -TERM "$MAIN_PID" 2>/dev/null
+      return
+    fi
 
-          if [ "$LAST" != "0" ] && [ $((NOW - LAST)) -le "$POWER_EXIT_WINDOW" ]; then
-            log "power pressed twice, stopping"
-            kill -TERM "$MAIN_PID" 2>/dev/null
-            exit 0
-          fi
-
-          LAST=$NOW
-          ;;
-      esac
-    done
-
-    sleep 2
+    LAST=$NOW
+    sleep 1
   done
+
+  log "power watch ended"
 }
 
 wifi() {
@@ -110,13 +121,12 @@ fetch() {
 }
 
 draw() {
+  # fbink writes its device detection to stderr, so only a non-zero exit is worth logging
   if [ $((COUNT % FULL_REFRESH_EVERY)) -eq 0 ]; then
-    ERR=$("$FBINK" -f -c -g file="$IMAGE" 2>&1 >/dev/null) || true
+    ERR=$("$FBINK" -q -f -c -g file="$IMAGE" 2>&1 >/dev/null) || log "fbink failed: $ERR"
   else
-    ERR=$("$FBINK" -g file="$IMAGE" 2>&1 >/dev/null) || true
+    ERR=$("$FBINK" -q -g file="$IMAGE" 2>&1 >/dev/null) || log "fbink failed: $ERR"
   fi
-
-  [ -n "$ERR" ] && log "fbink: $ERR"
 }
 
 rest() {
@@ -163,12 +173,9 @@ fi
 lipc-set-prop com.lab126.powerd preventScreenSaver 1 >/dev/null 2>&1
 
 MAIN_PID=$$
-if [ "$POWER_EXIT" = "1" ] && command -v lipc-wait-event > /dev/null 2>&1; then
+if [ "$POWER_EXIT" = "1" ]; then
   power_watch &
   WATCH_PID=$!
-  log "press power twice within ${POWER_EXIT_WINDOW}s to stop"
-else
-  log "power exit unavailable, stop it over SSH or reboot"
 fi
 
 COUNT=0

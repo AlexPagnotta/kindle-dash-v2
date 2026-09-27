@@ -216,9 +216,9 @@ turn on `SUSPEND=1` in `dash.conf` for the battery win.
 the dashboard the moment KUAL exits, so the panel goes back to the home screen and the log still
 says `refreshed`. Stopping it also means no KUAL, so there is no Stop button left. Three ways back:
 
-- **Two power presses** within `POWER_EXIT_WINDOW` seconds. `powerd` keeps running with the UI
-  stopped, so `dash.sh` watches its events and exits, restoring the UI. Set `POWER_EXIT=0` to
-  disable.
+- **Two power presses** within `POWER_EXIT_WINDOW` seconds. The button is read straight from
+  `/dev/input`, because with the framework stopped `powerd` no longer publishes its lipc events.
+  Set `POWER_EXIT=0` to disable.
 - **Over SSH**: `ssh root@<kindle-ip> sh /mnt/us/extensions/kindle-dash/bin/stop.sh`.
 - **Hold the power button** and reboot, which always works.
 
