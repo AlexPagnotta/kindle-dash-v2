@@ -34,11 +34,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-    x-casaos:
-      ports:
-        - container: "3000"
-          description:
-            en_us: Dashboard and PNG endpoint
 
 x-casaos:
   architectures:
