@@ -15,3 +15,8 @@ SUSPEND=0
 
 # 1 = stop the Kindle UI while the dashboard runs
 STOP_FRAMEWORK=0
+
+# 1 = two power presses within POWER_EXIT_WINDOW seconds stop the dashboard and restore the UI.
+# The only way out from the device itself once the UI is stopped, short of a reboot.
+POWER_EXIT=1
+POWER_EXIT_WINDOW=6

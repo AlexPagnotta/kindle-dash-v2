@@ -12,6 +12,8 @@ INTERVAL="${INTERVAL:-300}"
 FULL_REFRESH_EVERY="${FULL_REFRESH_EVERY:-12}"
 SUSPEND="${SUSPEND:-0}"
 STOP_FRAMEWORK="${STOP_FRAMEWORK:-0}"
+POWER_EXIT="${POWER_EXIT:-1}"
+POWER_EXIT_WINDOW="${POWER_EXIT_WINDOW:-6}"
 FBINK="${FBINK:-$ROOT/fbink}"
 IMAGE=/tmp/dash.png
 LOG="${LOG:-$ROOT/dash.log}"
@@ -35,6 +37,8 @@ framework() {
 
 cleanup() {
   log "stopping"
+  [ -n "${WATCH_PID:-}" ] && kill "$WATCH_PID" 2>/dev/null
+  pkill -f lipc-wait-event 2>/dev/null
   [ "$STOP_FRAMEWORK" = "1" ] && framework start
   lipc-set-prop com.lab126.powerd preventScreenSaver 0 >/dev/null 2>&1
   rm -f "$PIDFILE"
@@ -43,6 +47,39 @@ cleanup() {
 trap cleanup INT TERM
 # Interrupts the sleep between cycles, so "Refresh now" redraws immediately
 trap 'log "manual refresh"' USR1
+
+# With the UI stopped there is no KUAL and so no way out from the device. powerd keeps running
+# though, so two power presses in quick succession stop the dashboard and bring the UI back.
+power_watch() {
+  SEEN=0
+  LAST=0
+
+  while true; do
+    lipc-wait-event -m -s 0 com.lab126.powerd '*' 2>/dev/null | while read -r EVENT; do
+      # The first few are logged so the event names can be checked against a real device
+      if [ "$SEEN" -lt 8 ]; then
+        log "power event: $EVENT"
+        SEEN=$((SEEN + 1))
+      fi
+
+      case "$EVENT" in
+        *creenSaver* | *uspend* | *owerButton*)
+          NOW=$(date +%s)
+
+          if [ "$LAST" != "0" ] && [ $((NOW - LAST)) -le "$POWER_EXIT_WINDOW" ]; then
+            log "power pressed twice, stopping"
+            kill -TERM "$MAIN_PID" 2>/dev/null
+            exit 0
+          fi
+
+          LAST=$NOW
+          ;;
+      esac
+    done
+
+    sleep 2
+  done
+}
 
 wifi() {
   lipc-set-prop com.lab126.cmd wirelessEnable "$1" >/dev/null 2>&1
@@ -127,6 +164,15 @@ if [ "$STOP_FRAMEWORK" = "1" ]; then
 fi
 
 lipc-set-prop com.lab126.powerd preventScreenSaver 1 >/dev/null 2>&1
+
+MAIN_PID=$$
+if [ "$POWER_EXIT" = "1" ] && command -v lipc-wait-event > /dev/null 2>&1; then
+  power_watch &
+  WATCH_PID=$!
+  log "press power twice within ${POWER_EXIT_WINDOW}s to stop"
+else
+  log "power exit unavailable, stop it over SSH or reboot"
+fi
 
 COUNT=0
 PICKED=0
