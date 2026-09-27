@@ -9,6 +9,12 @@ No browser and no X server on the device, so it starts in seconds and sips batte
 
 Everything runs on the local network. There is no auth and nothing is exposed to the internet.
 
+The canonical address is the box's IP and port, `http://<box-ip>:6800`, and that is what the Kindle
+uses. A reverse proxy in front of it can add a nicer HTTPS name for browsing from a laptop or phone,
+which is what `https://kindle.godzilla-home-lab.fyi` is here: a public DNS name resolving to a
+private LAN address, with the certificate terminated on the box. The device never uses it, see
+[Addresses](#addresses).
+
 ```
 mini PC (Docker)                          Kindle (stock firmware)
 ┌────────────────────────┐                ┌──────────────────────┐
@@ -115,6 +121,19 @@ box, which gives the UI something to pull from. Everything below runs once.
 Give the box a DHCP reservation. The Kindle has no mDNS resolver, so the device config needs an IP,
 not a `.local` name, and plain HTTP: the Kindle's CA bundle is too old to be worth fighting.
 
+### Addresses
+
+| Address | Use |
+| --- | --- |
+| `http://<box-ip>:6800` | The real one. What the Kindle fetches, and what `DASH_URL` points at |
+| `https://kindle.godzilla-home-lab.fyi` | Optional convenience for browsing, via the reverse proxy on the box |
+
+The HTTPS name is a public DNS record pointing at a private LAN address, so it only resolves usefully
+from the network and nothing is published to the internet. It is a view onto the same container, not
+a second deployment: the port is what the app actually binds, and everything else is proxy config
+that lives outside this repo. Keep the device pointed at the IP even if the proxy is up, because a
+certificate the Kindle cannot validate breaks the dashboard silently, months later, when it renews.
+
 ### Server: updating
 
 ```sh
@@ -156,7 +175,8 @@ Needs a jailbroken device with KUAL and SSH access (USBNet or Wi-Fi).
 1. Download the FBInk static binary for your device from the
    [releases](https://github.com/NiLuJe/FBInk/releases) and drop it in `device/` as `fbink`.
 2. `cp device/dash.conf.example device/dash.conf` and set `DASH_URL` to
-   `http://<mini-pc-ip>:6800/api/dash.png`.
+   `http://<mini-pc-ip>:6800/api/dash.png`. Always the IP and port, never an HTTPS hostname: the
+   Kindle's CA bundle is too old to validate a modern certificate.
 3. `./device/install.sh <kindle-ip>` (defaults to `192.168.15.244`, the USBNet address). It copies
    `dash.sh`, `fbink` and `dash.conf` to `/mnt/us/kindle-dash/`, and the KUAL extension to
    `/mnt/us/extensions/`.

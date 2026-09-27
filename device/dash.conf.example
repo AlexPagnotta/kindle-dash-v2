@@ -1,6 +1,7 @@
 # Copy to dash.conf next to dash.sh on the Kindle and edit.
 
-# Full URL of the rendered PNG. Use the mini PC IP, the Kindle has no mDNS resolver.
+# Full URL of the rendered PNG. Always the IP and port, even when the server also has a nice HTTPS
+# name: the Kindle has no mDNS resolver and its CA bundle is too old to validate a modern cert.
 DASH_URL="http://192.168.1.50:6800/api/dash.png"
 
 # Seconds between refreshes
