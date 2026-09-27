@@ -18,7 +18,7 @@ LOG="${LOG:-$ROOT/dash.log}"
 PIDFILE=/tmp/kindle-dash.pid
 
 log() {
-  echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$LOG"
+  echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$LOG" 2>/dev/null || LOG=/tmp/dash.log
   # Keep the log from eating the tiny rootfs
   if [ "$(wc -c < "$LOG")" -gt 524288 ]; then
     tail -n 200 "$LOG" > "$LOG.tmp" && mv "$LOG.tmp" "$LOG"
@@ -91,9 +91,10 @@ rest() {
   fi
 }
 
-# Copied over USB mass storage, /mnt/us is FAT and can come back without the exec bit
-if [ ! -x "$FBINK" ] && [ -f "$FBINK" ]; then
-  cp "$FBINK" /tmp/fbink && chmod +x /tmp/fbink && FBINK=/tmp/fbink
+# Always run it from /tmp: FAT keeps no exec bit, and plugging in a USB cable unmounts /mnt/us
+# from under a running script
+if [ -f "$FBINK" ]; then
+  cp "$FBINK" /tmp/fbink 2>/dev/null && chmod +x /tmp/fbink && FBINK=/tmp/fbink
 fi
 
 if [ ! -x "$FBINK" ]; then
