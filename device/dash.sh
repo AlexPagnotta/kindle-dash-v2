@@ -81,8 +81,13 @@ rest() {
   fi
 }
 
+# Copied over USB mass storage, /mnt/us is FAT and can come back without the exec bit
+if [ ! -x "$FBINK" ] && [ -f "$FBINK" ]; then
+  cp "$FBINK" /tmp/fbink && chmod +x /tmp/fbink && FBINK=/tmp/fbink
+fi
+
 if [ ! -x "$FBINK" ]; then
-  echo "fbink not found at $FBINK" >&2
+  echo "fbink not found or not executable at $FBINK" >&2
   exit 1
 fi
 

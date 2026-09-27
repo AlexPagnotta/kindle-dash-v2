@@ -72,7 +72,8 @@ device/             what runs on the Kindle: dash.sh, KUAL extension, installer
 | `ssh <box> /DATA/AppData/kindle-dash/deploy/init.sh` | One-time ZimaOS setup: registry, build, publish |
 | `ssh <box> /DATA/AppData/kindle-dash/deploy/update.sh` | Rebuild on the box and restart the ZimaOS app |
 | `./device/get-fbink.sh [variant]` | Download the fbink binary into `device/` |
-| `./device/install.sh <kindle-ip>` | Push the device side to the Kindle over SSH |
+| `./device/install-usb.sh` | Install the device side over a USB cable |
+| `./device/install.sh <kindle-ip>` | Install the device side over SSH |
 
 ## Deploy
 
@@ -171,7 +172,8 @@ Updating: `git pull && docker compose up -d --build`.
 
 ### Kindle
 
-Needs a jailbroken device with KUAL and SSH access (USBNet or Wi-Fi).
+Needs a jailbroken device with KUAL. Install over a USB cable, or over SSH if you have USBNet or
+Wi-Fi access set up.
 
 1. Get the FBInk binary. Upstream publishes source only, so `get-fbink.sh` lifts the build that
    ships inside KOReader's Kindle bundle and saves it as `device/fbink`:
@@ -184,19 +186,28 @@ Needs a jailbroken device with KUAL and SSH access (USBNet or Wi-Fi).
 2. `cp device/dash.conf.example device/dash.conf` and set `DASH_URL` to
    `http://<mini-pc-ip>:6800/api/dash.png`. Always the IP and port, never an HTTPS hostname: the
    Kindle's CA bundle is too old to validate a modern certificate.
-3. `./device/install.sh <kindle-ip>` (defaults to `192.168.15.244`, the USBNet address). It copies
-   `dash.sh`, `fbink` and `dash.conf` to `/mnt/us/kindle-dash/`, and the KUAL extension to
-   `/mnt/us/extensions/`.
-4. Check the binary runs on the device and reports the panel you expect:
+3. Copy it to the device. Over USB, plug the Kindle in and wait for the drive to mount:
 
    ```sh
-   ssh root@<kindle-ip> /mnt/us/kindle-dash/fbink -e
+   ./device/install-usb.sh                 # or pass the path, default is /Volumes/Kindle
    ```
 
-   `Exec format error` means the wrong variant, so try another one from step 1. The reported
-   resolution should be `SCREEN_WIDTH` and `SCREEN_HEIGHT` swapped, since the framebuffer is portrait.
+   Over SSH instead:
 
-5. On the Kindle: KUAL -> Kindle Dash -> Start dashboard.
+   ```sh
+   ./device/install.sh <kindle-ip>         # defaults to 192.168.15.244, the USBNet address
+   ```
+
+   Either way it lands in `/mnt/us/kindle-dash/`, with the KUAL extension in `/mnt/us/extensions/`.
+   Eject the drive before moving on, the Kindle cannot read it while it is mounted on your Mac.
+
+4. On the Kindle: KUAL -> Kindle Dash -> Start dashboard.
+
+   If the panel stays blank, the usual cause is the wrong fbink build. `dash.log` shows
+   `fbink not found or not executable`, or `Exec format error`, so fetch another variant from step 1
+   and reinstall. With SSH you can check directly with `ssh root@<kindle-ip>
+   /mnt/us/kindle-dash/fbink -e`, which also prints the panel resolution: it should be
+   `SCREEN_WIDTH` and `SCREEN_HEIGHT` swapped, since the framebuffer is portrait.
 
 Logs land in `/mnt/us/kindle-dash/dash.log`, capped at 512KB. Once a few refresh cycles have landed,
 turn on `SUSPEND=1` in `dash.conf` for the battery win, and `STOP_FRAMEWORK=1` to drop the Kindle UI.
